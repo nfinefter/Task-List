@@ -15,7 +15,6 @@ const darkTheme = createTheme({
   palette: { mode: "dark" },
 });
 
-// Replace with your Cognito info
 const COGNITO_DOMAIN = "us-east-2tkqvhkitl.auth.us-east-2.amazoncognito.com";
 const CLIENT_ID = '63uh95r2deoaclc4jnjp7h76k9';
 const REDIRECT_URI = "https://main.dnrxo3yjvzip5.amplifyapp.com/";
@@ -33,7 +32,7 @@ export default function App() {
     }
   };
 
-  // Detect authentication by checking if URL contains Cognito code token
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
@@ -50,7 +49,7 @@ export default function App() {
   };
 
   const signOut = () => {
-    const url = `https://${COGNITO_DOMAIN}/logout?client_id=${CLIENT_ID}&logout_uri=${REDIRECT_URI}`;
+    const url = REDIRECT_URI;
     window.location.href = url;
   };
 
