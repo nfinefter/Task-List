@@ -11,10 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.922.0",
-    "@aws-sdk/lib-dynamodb": "^3.922.0",
+    "@aws-sdk/client-dynamodb": "^3.925.0",
+    "@aws-sdk/lib-dynamodb": "^3.925.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
     "nodemon": "^3.1.10",
     "serverless-http": "^4.0.0"
   }

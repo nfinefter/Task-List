@@ -5,6 +5,8 @@
   "dependencies": {
     "@aws-amplify/auth": "^6.16.0",
     "@aws-amplify/ui-react": "^6.13.1",
+    "@aws-sdk/client-dynamodb": "^3.925.0",
+    "@aws-sdk/lib-dynamodb": "^3.925.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.5",

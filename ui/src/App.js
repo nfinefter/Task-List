@@ -6,7 +6,8 @@ import { Task } from "./components/Task";
 import axios from "axios";
 import { API_URL } from "./utils";
 
-import { Amplify } from "aws-amplify";
+import { Amplify} from "aws-amplify";
+import { fetchAuthSession } from "aws-amplify/auth";
 import awsconfig from "./aws-exports";
 
 Amplify.configure(awsconfig);
@@ -14,6 +15,21 @@ Amplify.configure(awsconfig);
 const darkTheme = createTheme({
   palette: { mode: "dark" },
 });
+
+const getToken = async () => {
+  try {
+    const session = await fetchAuthSession();
+    const idToken = session.tokens?.idToken?.toString();
+    const accessToken = session.tokens?.accessToken?.toString();
+
+    console.log("ID Token:", idToken);
+    console.log("Access Token:", accessToken);
+
+    return idToken;
+  } catch (error) {
+    console.error("Error fetching session:", error);
+  }
+};
 
 const COGNITO_DOMAIN = "us-east-2tkqvhkitl.auth.us-east-2.amazoncognito.com";
 const CLIENT_ID = '63uh95r2deoaclc4jnjp7h76k9';
