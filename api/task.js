@@ -4,72 +4,79 @@ import {
   PutCommand,
   DynamoDBDocumentClient,
   ScanCommand,
+  QueryCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { Auth } from "@aws-amplify";
+import {currentAuthenticatedUser} from "@aws-amplify/auth"; 
+
+
 import crypto from "crypto";
 
 const client = new DynamoDBClient({ region: "us-east-2" });
 const docClient = DynamoDBDocumentClient.from(client);
 
+
+
 export const fetchTasks = async () => {
-  const command = new ScanCommand({
-    ExpressionAttributeNames: { "#name": "name" },
-    ProjectionExpression: "id, #name, completed",
+  const user = await currentAuthenticatedUser();
+  const userId = user.attributes.sub;
+
+  const command = new QueryCommand({
     TableName: "Tasks",
+    KeyConditionExpression: "userId = :uid",
+    ExpressionAttributeValues: {
+      ":uid": userId,
+    },
   });
 
   const response = await docClient.send(command);
-
-  return response;
+  return response.Items;
 };
 
 export const createTasks = async ({ name, completed }) => {
+  const user = await currentAuthenticatedUser();
+  const userId = user.attributes.sub; 
   const uuid = crypto.randomUUID();
+
   const command = new PutCommand({
     TableName: "Tasks",
     Item: {
       id: uuid,
+      userId,       
       name,
       completed,
     },
   });
 
-  const response = await docClient.send(command);
-
-  return response;
+  return await docClient.send(command);
 };
 
 export const updateTasks = async ({ id, name, completed }) => {
+  const user = await currentAuthenticatedUser();
+  const userId = user.attributes.sub;
+
   const command = new UpdateCommand({
     TableName: "Tasks",
-    Key: {
-      id,
-    },
-    ExpressionAttributeNames: {
-      "#name": "name",
-    },
+    Key: { userId, id },
+    ExpressionAttributeNames: { "#name": "name" },
     UpdateExpression: "set #name = :n, completed = :c",
-    ExpressionAttributeValues: {
-      ":n": name,
-      ":c": completed,
-    },
+    ExpressionAttributeValues: { ":n": name, ":c": completed },
     ReturnValues: "ALL_NEW",
   });
 
-  const response = await docClient.send(command);
-
-  return response;
+  return await docClient.send(command);
 };
 
 export const deleteTasks = async (id) => {
+  const user = await currentAuthenticatedUser();
+  const userId = user.attributes.sub;
+
   const command = new DeleteCommand({
     TableName: "Tasks",
-    Key: {
-      id,
-    },
+    Key: { userId, id },
   });
 
-  const response = await docClient.send(command);
-
-  return response;
+  return await docClient.send(command);
 };
+
