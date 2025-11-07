@@ -1,48 +1,36 @@
+// auth.middleware.js
 import jwt from "jsonwebtoken";
-import jwksClient from "jwks-rsa";
+import jwkToPem from "jwk-to-pem";
+import fetch from "node-fetch";
 
-const region = "us-east-2"; 
-const userPoolId = "us-east-2_tkQVHKiTL"; 
-const clientId = "63uh95r2deoaclc4jnjp7h76k9"; 
+let jwks;
 
-const client = jwksClient({
-  jwksUri: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`,
-});
+export default async function authMiddleware(req, res, next) {
+  try {
+    const token = req.headers.authorization;
+    if (!token) return res.status(401).send("Missing Authorization header");
 
-function getKey(header, callback) {
-  client.getSigningKey(header.kid, (err, key) => {
-    const signingKey = key.getPublicKey();
-    callback(null, signingKey);
-  });
-}
+    const decoded = jwt.decode(token, { complete: true });
+    if (!decoded) return res.status(401).send("Invalid token");
 
-export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).send("Missing Authorization header");
-
-  const token = authHeader.split(" ")[1];
-
-  jwt.verify(
-    token,
-    getKey,
-    {
-      algorithms: ["RS256"],
-    },
-    (err, decoded) => {
-      if (err) {
-        console.error("JWT verification failed:", err);
-        return res.status(403).send("Invalid or expired token");
-      }
-
-      // Optionally ensure token was issued for your app client
-      if (clientId && decoded.aud !== clientId) {
-        return res.status(403).send("Token was not issued for this app client");
-      }
-
-      // Attach user info (Cognito “sub” = user ID)
-      req.user = decoded;
-      next();
+    // Load JWKs only once per cold start
+    if (!jwks) {
+      const userPoolId = "us-east-2_tkQVHKiTL";
+      const jwksUrl = `https://cognito-idp.us-east-2.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
+      const response = await fetch(jwksUrl);
+      jwks = await response.json();
     }
-  );
-};
-export default verifyToken;
+
+    const key = jwks.keys.find(k => k.kid === decoded.header.kid);
+    if (!key) return res.status(401).send("Invalid signing key");
+
+    const pem = jwkToPem(key);
+    const verified = jwt.verify(token, pem, { algorithms: ["RS256"] });
+
+    req.user = verified; // attach user data to request
+    next();
+  } catch (err) {
+    console.error("Auth error:", err);
+    res.status(401).send("Unauthorized");
+  }
+}

@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "jwk-to-pem": "^2.0.7",
     "jwks-rsa": "^3.2.0",
     "nodemon": "^3.1.10",
     "serverless-http": "^4.0.0"

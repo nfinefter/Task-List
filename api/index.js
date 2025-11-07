@@ -1,3 +1,4 @@
+// index.js
 import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
@@ -9,26 +10,27 @@ const port = 3001;
 
 app.use(express.json());
 
+// ✅ Allow only your Amplify frontend
 const corsOptions = {
-  origin: "https://main.dnrxo3yjvzip5.amplifyapp.com", // your frontend
-  credentials: true, // if sending cookies or Authorization header
+  origin: "https://main.dnrxo3yjvzip5.amplifyapp.com", // your Amplify app URL
+  credentials: true,
 };
 
-app.use(cors(corsOptions)); // only here, do NOT add another header manually
-//app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 
-// ✅ Attach authentication middleware
+// ✅ Protect all routes with Cognito auth
 app.use(authMiddleware);
 
 // Root route
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Hello from the Task API 👋");
 });
 
 // ✅ GET /task — Fetch tasks for this Cognito user
 app.get("/task", async (req, res) => {
   try {
-    const tasks = await fetchTasks(req.user.sub);
+    const userId = req.user.sub; // unique Cognito user ID
+    const tasks = await fetchTasks(userId);
     res.send(tasks.Items);
   } catch (err) {
     console.error("Error fetching tasks:", err);
@@ -39,11 +41,11 @@ app.get("/task", async (req, res) => {
 // ✅ POST /task — Create a new task for this user
 app.post("/task", async (req, res) => {
   try {
-    const task = { ...req.body, userId: req.user.sub };
+    const userId = req.user.sub;
+    const task = { ...req.body, userId };
     const response = await createTasks(task);
     res.status(201).send(response);
   } catch (err) {
-    alert("THIS IS AN ALERT")
     console.error("Error creating task:", err);
     res.status(400).send(`Error creating task: ${err}`);
   }
@@ -52,7 +54,8 @@ app.post("/task", async (req, res) => {
 // ✅ PUT /task — Update an existing task
 app.put("/task", async (req, res) => {
   try {
-    const task = { ...req.body, userId: req.user.sub };
+    const userId = req.user.sub;
+    const task = { ...req.body, userId };
     const response = await updateTasks(task);
     res.send(response);
   } catch (err) {
@@ -64,8 +67,9 @@ app.put("/task", async (req, res) => {
 // ✅ DELETE /task/:id — Delete a task for this user
 app.delete("/task/:id", async (req, res) => {
   try {
+    const userId = req.user.sub;
     const { id } = req.params;
-    const response = await deleteTasks(id, req.user.sub);
+    const response = await deleteTasks(id, userId);
     res.send(response);
   } catch (err) {
     console.error("Error deleting task:", err);
@@ -73,13 +77,13 @@ app.delete("/task/:id", async (req, res) => {
   }
 });
 
+// For local dev only
 if (process.env.DEVELOPMENT) {
   app.listen(port, () => console.log(`App listening on port ${port}`));
 }
 
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).send("Route not found!");
 });
-
 
 export const handler = serverless(app);

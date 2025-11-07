@@ -4,25 +4,30 @@ import { Button, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import axios from "axios";
 import { API_URL } from "../utils";
+import { getIdToken } from "../utils/auth";
 
 export const AddTaskForm = ({ fetchTasks }) => {
   const [newTask, setNewTask] = useState("");
 
   const addNewTask = async () => {
-    try {
-      await axios.post(API_URL, {
-        name: newTask,
-        completed: false,
-      });
+  try {
+    const token = await getIdToken();
+    await axios.post(API_URL, {
+      name: newTask,
+      completed: false,
+    }, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      await fetchTasks();
+    await fetchTasks();
 
-      setNewTask("");
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
+    setNewTask("");
+  } catch (err) {
+    console.log(err);
+  }
+};
   return (
     <div>
       <Typography align="center" variant="h2" paddingTop={2} paddingBottom={2}>
