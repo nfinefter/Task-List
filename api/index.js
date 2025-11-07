@@ -15,7 +15,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions)); // only here, do NOT add another header manually
-
+//app.options("*", cors(corsOptions));
 
 // ✅ Attach authentication middleware
 app.use(authMiddleware);
