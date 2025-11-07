@@ -26,6 +26,7 @@ const getUserIdFromEvent = (event) => {
 
 // Fetch tasks for a user
 export const fetchTasks = async (userId) => {
+  
   const command = new QueryCommand({
     TableName: TABLE_NAME,
     KeyConditionExpression: "userId = :uid",
