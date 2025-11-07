@@ -1,94 +1,111 @@
-import { ListTablesCommand, DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
-import {
-  UpdateCommand,
-  PutCommand,
-  DynamoDBDocumentClient,
-  ScanCommand,
-  DeleteCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, UpdateCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
-
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 const client = new DynamoDBClient({ region: "us-east-2" });
 const docClient = DynamoDBDocumentClient.from(client);
 
+const TABLE_NAME = "TasksV2";
 
-export const handler = async (event) => {
+// Helper to get userId from JWT
+const getUserIdFromEvent = (event) => {
   try {
-    const token = event.headers.Authorization?.replace('Bearer ', '');
-    const decoded = jwt.decode(token);
-    const userId = decoded.sub;
+    const token = event.headers.Authorization?.replace("Bearer ", "");
+    if (!token) throw new Error("Missing token");
 
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.sub) throw new Error("Invalid token");
+
+    return decoded.sub;
   } catch (err) {
     console.error("Auth error:", err);
-    return { statusCode: 401, body: "Unauthorized" };
+    return null;
   }
 };
 
-
-export const fetchTasks = async () => {
+// Fetch tasks for a user
+export const fetchTasks = async (userId) => {
   const command = new QueryCommand({
-  TableName: "Tasks",
-  KeyConditionExpression: "userId = :uid",
-  ExpressionAttributeValues: {
-    ":uid": userId,
-  },
-});
-
-  const response = await docClient.send(command);
-
-  return response;
-};
-
-export const createTasks = async ({ name, completed }) => {
-  const uuid = crypto.randomUUID();
-  const command = new PutCommand({
-    TableName: "TasksV2",
-    Item: {
-      id: uuid,
-      name,
-      completed,
-      userId
-    },
+    TableName: TABLE_NAME,
+    KeyConditionExpression: "userId = :uid",
+    ExpressionAttributeValues: { ":uid": userId },
   });
 
   const response = await docClient.send(command);
-
-  return response;
+  return response.Items || [];
 };
 
-export const updateTasks = async ({ id, name, completed }) => {
+// Create a new task
+export const createTasks = async ({ name, completed, userId }) => {
+  const uuid = crypto.randomUUID();
+
+  const command = new PutCommand({
+    TableName: TABLE_NAME,
+    Item: { id: uuid, name, completed, userId },
+  });
+
+  return await docClient.send(command);
+};
+
+// Update a task
+export const updateTasks = async ({ id, name, completed, userId }) => {
   const command = new UpdateCommand({
-    TableName: "TasksV2",
-    Key: {
-      userId, id,
-    },
-    ExpressionAttributeNames: {
-      "#name": "name",
-    },
-    UpdateExpression: "set #name = :n, completed = :c",
-    ExpressionAttributeValues: {
-      ":n": name,
-      ":c": completed,
-    },
+    TableName: TABLE_NAME,
+    Key: { userId, id },
+    UpdateExpression: "SET #name = :n, completed = :c",
+    ExpressionAttributeNames: { "#name": "name" },
+    ExpressionAttributeValues: { ":n": name, ":c": completed },
     ReturnValues: "ALL_NEW",
   });
 
-  const response = await docClient.send(command);
-
-  return response;
+  return await docClient.send(command);
 };
 
-export const deleteTasks = async (id) => {
+// Delete a task
+export const deleteTasks = async ({ id, userId }) => {
   const command = new DeleteCommand({
-    TableName: "TasksV2",
-    Key: {
-      userId, id,
-    },
+    TableName: TABLE_NAME,
+    Key: { userId, id },
   });
 
-  const response = await docClient.send(command);
+  return await docClient.send(command);
+};
 
-  return response;
+// Lambda handler
+export const handler = async (event) => {
+  const userId = getUserIdFromEvent(event);
+  if (!userId) return { statusCode: 401, body: "Unauthorized" };
+
+  try {
+    const { httpMethod, body, pathParameters } = event;
+
+    if (httpMethod === "GET") {
+      const tasks = await fetchTasks(userId);
+      return { statusCode: 200, body: JSON.stringify(tasks) };
+    }
+
+    if (httpMethod === "POST") {
+      const { name, completed } = JSON.parse(body);
+      const task = await createTasks({ name, completed, userId });
+      return { statusCode: 201, body: JSON.stringify(task) };
+    }
+
+    if (httpMethod === "PUT") {
+      const { id, name, completed } = JSON.parse(body);
+      const updated = await updateTasks({ id, name, completed, userId });
+      return { statusCode: 200, body: JSON.stringify(updated) };
+    }
+
+    if (httpMethod === "DELETE") {
+      const { id } = pathParameters;
+      const deleted = await deleteTasks({ id, userId });
+      return { statusCode: 200, body: JSON.stringify(deleted) };
+    }
+
+    return { statusCode: 405, body: "Method Not Allowed" };
+  } catch (err) {
+    console.error(err);
+    return { statusCode: 500, body: "Internal Server Error" };
+  }
 };

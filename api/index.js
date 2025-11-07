@@ -8,7 +8,14 @@ const app = express();
 const port = 3001;
 
 app.use(express.json());
-app.use(cors()); // ✅ enable CORS globally
+
+const corsOptions = {
+  origin: "https://main.dnrxo3yjvzip5.amplifyapp.com", // your frontend
+  credentials: true, // if sending cookies or Authorization header
+};
+
+app.use(cors(corsOptions)); // only here, do NOT add another header manually
+
 
 // ✅ Attach authentication middleware
 app.use(authMiddleware);

@@ -6,8 +6,8 @@ import { Task } from "./components/Task";
 import axios from "axios";
 import { API_URL } from "./utils";
 
-import { Amplify} from "aws-amplify";
-import { fetchAuthSession } from "aws-amplify/auth";
+import { Amplify } from "aws-amplify";
+import { Auth } from "aws-amplify";
 import awsconfig from "./aws-exports";
 
 Amplify.configure(awsconfig);
@@ -16,18 +16,15 @@ const darkTheme = createTheme({
   palette: { mode: "dark" },
 });
 
-const getToken = async () => {
+// Helper to get ID token from Cognito
+const getIdToken = async () => {
   try {
-    const session = await fetchAuthSession();
-    const idToken = session.tokens?.idToken?.toString();
-    const accessToken = session.tokens?.accessToken?.toString();
-
-    console.log("ID Token:", idToken);
-    console.log("Access Token:", accessToken);
-
-    return idToken;
-  } catch (error) {
-    console.error("Error fetching session:", error);
+    const user = await Auth.currentAuthenticatedUser();
+    const session = await Auth.currentSession();
+    return session.getIdToken().getJwtToken();
+  } catch (err) {
+    console.error("Error fetching token:", err);
+    return null;
   }
 };
 
@@ -40,14 +37,18 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const fetchTasks = async () => {
+    const token = await getIdToken();
+    if (!token) return;
+
     try {
-      const { data } = await axios.get(API_URL);
+      const { data } = await axios.get(`${API_URL}/task`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setTasks(data);
     } catch (err) {
-      console.log(err);
+      console.error("Error fetching tasks:", err);
     }
   };
-
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -64,9 +65,13 @@ export default function App() {
     window.location.href = url;
   };
 
-  const signOut = () => {
-    const url = REDIRECT_URI;
-    window.location.href = url;
+  const signOut = async () => {
+    try {
+      await Auth.signOut();
+    } catch (err) {
+      console.error(err);
+    }
+    window.location.href = REDIRECT_URI;
   };
 
   if (!isAuthenticated) {
