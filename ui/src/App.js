@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const COGNITO_DOMAIN = "tkqvhkitl.auth.us-east-2.amazoncognito.com"; // exact hosted UI domain
-const CLIENT_ID = "63uh95r2deoaclc4jnjp7h76k9"; // client without secret
+const COGNITO_DOMAIN = "tkqvhkitl.auth.us-east-2.amazoncognito.com";
+const CLIENT_ID = "63uh95r2deoaclc4jnjp7h76k9"; // 
 const REDIRECT_URI = "https://main.dnrxo3yjvzip5.amplifyapp.com/";
-const API_URL = "https://your-lambda-url/task"; // replace with your lambda URL
+const API_URL = "https://uhk7a6v5dokykz54wcle7zyrcm0pbtbf.lambda-url.us-east-2.on.aws/"; 
 
 export default function App() {
   const [tasks, setTasks] = useState([]);
