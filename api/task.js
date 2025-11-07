@@ -1,25 +1,41 @@
-import { ListTablesCommand, DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { ListTablesCommand, DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
 import {
   UpdateCommand,
   PutCommand,
   DynamoDBDocumentClient,
   ScanCommand,
+  QueryCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 
+import jwt from 'jsonwebtoken';
+
 const client = new DynamoDBClient({ region: "us-east-2" });
 const docClient = DynamoDBDocumentClient.from(client);
 
+
+export const handler = async (event) => {
+  try {
+    const token = event.headers.Authorization?.replace('Bearer ', '');
+    const decoded = jwt.decode(token);
+    const userId = decoded.sub;
+
+  } catch (err) {
+    console.error("Auth error:", err);
+    return { statusCode: 401, body: "Unauthorized" };
+  }
+};
+
+
 export const fetchTasks = async () => {
-  const command = new ScanCommand({
-    ExpressionAttributeNames: { "#name": "name" },
-    ProjectionExpression: "id, #name, completed",
-    TableName: "TasksV2",
-    ExpressionAttributeValues: {
-      ":uid": userId,
-    },
-  });
+  const command = new QueryCommand({
+  TableName: "Tasks",
+  KeyConditionExpression: "userId = :uid",
+  ExpressionAttributeValues: {
+    ":uid": userId,
+  },
+});
 
   const response = await docClient.send(command);
 

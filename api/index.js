@@ -2,7 +2,7 @@ import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
 import { fetchTasks, createTasks, updateTasks, deleteTasks } from "./task.js";
-import { verifyToken } from "./authMiddleware.js"; 
+
 
 const app = express();
 const port = 3001;
@@ -17,7 +17,6 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.use("/task", verifyToken);
 
 app.get("/task", async (req, res) => {
   try {
