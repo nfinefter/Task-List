@@ -4,7 +4,6 @@ import {
   PutCommand,
   DynamoDBDocumentClient,
   ScanCommand,
-  QueryCommand,
   DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
