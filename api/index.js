@@ -2,7 +2,7 @@ import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
 import { fetchTasks, createTasks, updateTasks, deleteTasks } from "./task.js";
-import authMiddleware from "./authMiddleware.js"; // ✅ must exist
+import authMiddleware from "./auth.middleware.js";
 
 const app = express();
 const port = 3001;
