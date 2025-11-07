@@ -70,6 +70,9 @@ if (process.env.DEVELOPMENT) {
   app.listen(port, () => console.log(`App listening on port ${port}`));
 }
 
-app.all("*", (req, res) => res.status(404).send("Route not found!"));
+app.use((req, res, next) => {
+  res.status(404).send("Route not found!");
+});
+
 
 export const handler = serverless(app);
