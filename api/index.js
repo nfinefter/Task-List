@@ -8,9 +8,20 @@ const port = 3001;
 
 app.use(express.json());
 
-if (process.env.DEVELOPMENT) {
-  app.use(cors());
-}
+const allowedOrigins = [
+  "https://main.dnrxo3yjvzip5.amplifyapp.com",
+  "http://localhost:3000", // for local dev
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -67,9 +78,5 @@ if (process.env.DEVELOPMENT) {
     console.log(`Example app listening on port ${port}`);
   });
 }
-app.all("*", (req, res) => {
-  console.log("Request path:", req.path);
-  res.status(404).send("Route not found!");
-});
 
 export const handler = serverless(app);
